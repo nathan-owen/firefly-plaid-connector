@@ -25,11 +25,14 @@ namespace firefly_plaid_connector
         {
             this.args = args;
             this.config = config;
-            this.plaid = new PlaidClient(
-                config.plaid.client_id,
-                config.plaid.secret,
-                config.plaid.pubkey,
-                Acklann.Plaid.Environment.Development);
+            PlaidOption plaidOption = new PlaidOption
+            {
+                ClientId = config.plaid.client_id,
+                EnvironmentName = Acklann.Plaid.Environment.Development,
+                Secrets = config.plaid.secret,
+            };
+
+            this.plaid = new PlaidClient(plaidOption, null, null);
             this.firefly = new TransactionsApi(new FireflyIII.Client.Configuration()
             {
                 BasePath = config.firefly.url,
@@ -56,7 +59,7 @@ namespace firefly_plaid_connector
                 }
                 else
                 {
-                    var accts = await this.plaid.FetchAccountAsync(new Acklann.Plaid.Balance.GetAccountRequest()
+                    var accts = await this.plaid.FetchAccountAsync(new Acklann.Plaid.Accounts.GetAccountRequest()
                     {
                         AccessToken = token,
                     });
@@ -128,7 +131,7 @@ namespace firefly_plaid_connector
                 date: source.Date,
                 processDate: dest.Date,
                 description: source.Name + " -> " + dest.Name,
-                amount: source.Amount,
+                amount: (double)source.Amount,
                 currencyCode: source.CurrencyCode,
                 externalId: source.TransactionId + " -> " + dest.TransactionId,
                 type: TransactionSplit.TypeEnum.Transfer,
@@ -180,7 +183,7 @@ namespace firefly_plaid_connector
             var transfer = new FireflyIII.Model.TransactionSplit(
                 date: txn.Date,
                 description: txn.Name,
-                amount: Math.Abs(txn.Amount),
+                amount: (double)Math.Abs(txn.Amount),
                 currencyCode: txn.CurrencyCode,
                 externalId: txn.TransactionId,
                 tags: txn.Categories?.ToList()
